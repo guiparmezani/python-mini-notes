@@ -8,6 +8,7 @@ Build a very small full-stack application to practice:
 - Python fundamentals
 - REST API design
 - PostgreSQL integration
+- Docker-based local services
 - Frontend/backend communication
 - Loading and error states
 - Basic CRUD operations
@@ -32,10 +33,88 @@ This project is intentionally small enough to complete in a few hours.
 - Built-in `http.server`
 - `psycopg` (PostgreSQL driver)
 - `python-dotenv`
+- Local Python virtual environment for the first implementation
 
 ### Database
 
-- PostgreSQL
+- PostgreSQL 16
+- Run through Docker Compose
+
+### Infrastructure / Local Services
+
+- Docker
+- Docker Compose
+- PostgreSQL container
+- Optional later: containerize the backend after the raw Python version works locally
+
+### Docker Usage Policy
+
+Use Docker for services that would otherwise require machine-level installation or long-lived local setup.
+
+For this app:
+
+- Run PostgreSQL in Docker Compose.
+- Keep the Python backend in a local virtual environment at first, so Python imports, scripts, packages, and debugging stay visible.
+- Keep the React frontend local through Vite at first.
+- Add backend/frontend containers only as a later Docker learning step, after the app works locally.
+
+This keeps Docker in the workflow without hiding the Python concepts this project is meant to teach.
+
+---
+
+## Local Development Setup
+
+### Python Environment
+
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install Python dependencies:
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install "psycopg[binary]" python-dotenv
+python -m pip freeze > requirements.txt
+```
+
+### Docker Compose Services
+
+Create a `docker-compose.yml` with PostgreSQL:
+
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: notes_app
+      POSTGRES_USER: notes_app
+      POSTGRES_PASSWORD: notes_app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+```
+
+Start the database:
+
+```bash
+docker compose up -d
+```
+
+The backend should connect to:
+
+```env
+DATABASE_URL=postgresql://notes_app:notes_app@localhost:5432/notes_app
+```
+
+Use `localhost` because Docker maps the container's PostgreSQL port to the host machine.
 
 ---
 
@@ -118,7 +197,7 @@ Search title, body, or tags.
 Install:
 
 ```bash
-pip install psycopg[binary] python-dotenv
+python -m pip install "psycopg[binary]" python-dotenv
 ```
 
 ---
@@ -143,6 +222,8 @@ pip install psycopg[binary] python-dotenv
 - Database connections
 - SQL queries
 - Error handling
+- Environment variables
+- Virtual environments
 
 ---
 
@@ -218,9 +299,28 @@ Practice:
 
 ## Suggested Build Order
 
+### Phase 0
+
+Prepare the local development environment.
+
+Implement:
+
+- Create `.venv`
+- Install Python dependencies
+- Create `.env`
+- Create `.gitignore`
+- Create `docker-compose.yml`
+
 ### Phase 1
 
-Create PostgreSQL database and table.
+Start PostgreSQL with Docker Compose and create the database table.
+
+Implement:
+
+- `docker compose up -d`
+- Verify the database container is running
+- Connect to PostgreSQL
+- Create the `notes` table
 
 ### Phase 2
 
@@ -265,6 +365,19 @@ Add:
 - Empty state
 - Tag badges
 
+### Phase 8
+
+Optional Docker learning step.
+
+Add:
+
+- Backend `Dockerfile`
+- Backend service in `docker-compose.yml`
+- Frontend service in `docker-compose.yml`
+- Internal Docker networking between services
+
+Only do this after the app already works locally with Python running from `.venv`.
+
 ---
 
 ## Success Criteria
@@ -276,9 +389,11 @@ By the end of the project you should be comfortable with:
 - React API calls
 - Python HTTP handling
 - PostgreSQL CRUD operations
+- Docker Compose service management
+- Environment-based configuration
 - JSON APIs
 - Frontend/backend integration
 
 The goal is not to build a production application.
 
-The goal is to become sharper with React, Python, SQL, APIs, and debugging before technical interviews.
+The goal is to become sharper with React, Python, SQL, Docker, APIs, and debugging before technical interviews.
