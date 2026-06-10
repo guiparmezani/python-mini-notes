@@ -182,3 +182,51 @@
     border-right-color: var(--border);
   }
 }
+
+/* Minin Notes styles */
+.app-shell {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 20px;
+  font-family: system-ui, sans-serif;
+}
+
+.notes-list {
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.note-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.note-card h2 {
+  margin: 0 0 8px;
+}
+
+.note-card p {
+  margin: 0 0 12px;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tag {
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.error-message {
+  color: #b91c1c;
+}
