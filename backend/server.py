@@ -1,40 +1,78 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPSServer, HTTPServer
 from db import get_connection
+from urllib.parse import parse_qs, urlparse
 
 HOST = 'localhost'
 PORT = 8000
 
 class NotesHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/notes':
-            self.handle_get_notes()
+        parsed_url = urlparse(self.path)
+
+        if parsed_url.path == "/notes":
+            query_params = parse_qs(parsed_url.query)
+            search_query = query_params.get("q", [""])[0]
+            self.handle_get_notes(search_query)
             return
-        self.send_json({'error': 'NotFound'}, status=404)
+
+        self.send_json({"error": "Not found"}, status=404)
 
     def do_POST(self):
         if self.path == '/notes':
             self.handle_create_note()
             return
         self.send_json({'error': 'Not Found'}, status=404)
+
+    def do_DELETE(self):
+        if self.path.startswith('/notes/'):
+            self.handle_delete_note()
+            return
+        self.send_json({'error': 'Not Found'}, status=404)
+        
     
-    def handle_get_notes(self):
+    def handle_get_notes(self, search_query=""):
         with get_connection() as conn:
             with conn.cursor() as cursor:
-                cursor.execute('SELECT id, title, body, tags, created_at FROM notes ORDER BY created_at DESC;')
+                if search_query:
+                    search_pattern = f"%{search_query}%"
+                    cursor.execute(
+                        """
+                        SELECT id, title, body, tags, created_at
+                        FROM notes
+                        WHERE title ILIKE %s
+                        OR body ILIKE %s
+                        OR EXISTS (
+                            SELECT 1
+                            FROM unnest(tags) AS tag
+                            WHERE tag ILIKE %s
+                        )
+                        ORDER BY created_at DESC;
+                        """,
+                        (search_pattern, search_pattern, search_pattern),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT id, title, body, tags, created_at
+                        FROM notes
+                        ORDER BY created_at DESC;
+                        """
+                    )
+
                 rows = cursor.fetchall()
-        
+
         notes = []
         for row in rows:
             note = {
-                'id': row[0],
-                'title': row[1],
-                'body': row[2],
-                'tags': row[3],
-                'created_at': row[4].isoformat(),
+                "id": row[0],
+                "title": row[1],
+                "body": row[2],
+                "tags": row[3],
+                "created_at": row[4].isoformat(),
             }
             notes.append(note)
-        
+
         self.send_json(notes)
 
     def handle_create_note(self):
@@ -67,6 +105,7 @@ class NotesHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Tags must be a list"}, status=400)
             return
         
+        # Upon validating the content, connects to Postgres and inserts the entry.
         with get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -88,6 +127,26 @@ class NotesHandler(BaseHTTPRequestHandler):
         }
 
         self.send_json(note, status=201)
+
+    def handle_delete_note(self):
+        note_id_text = self.path.removeprefix('/notes/')
+        try:
+            note_id = int(note_id_text)
+        except ValueError:
+            self.send_json({'error': 'Invalid note id'}, status=400)
+
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("""DELETE from notes WHERE id = %s RETURNING id;""", (note_id,),)
+                deleted_row = cursor.fetchone()
+        
+        if deleted_row is None:
+            self.send_json({"error": "Note not found"}, status=404)
+            return
+
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
 
     def send_json(self, data, status=200):
         response_body = json.dumps(data).encode('utf-8')
