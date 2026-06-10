@@ -4,7 +4,7 @@ from db import get_connection
 from urllib.parse import parse_qs, urlparse
 
 HOST = 'localhost'
-PORT = 8000
+PORT = 8001
 
 class NotesHandler(BaseHTTPRequestHandler):
     def do_GET(self):
