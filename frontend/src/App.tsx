@@ -9,7 +9,7 @@ type Note = {
   created_at: string;
 };
 
-const API_BASE_URL = "http://localhost:8001";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
