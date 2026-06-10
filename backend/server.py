@@ -29,6 +29,11 @@ class NotesHandler(BaseHTTPRequestHandler):
             self.handle_delete_note()
             return
         self.send_json({'error': 'Not Found'}, status=404)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_cors_headers()
+        self.end_headers()
         
     
     def handle_get_notes(self, search_query=""):
@@ -145,16 +150,21 @@ class NotesHandler(BaseHTTPRequestHandler):
             return
 
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_cors_headers()
         self.end_headers()
 
+    def send_cors_headers(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
     def send_json(self, data, status=200):
-        response_body = json.dumps(data).encode('utf-8')
+        response_body = json.dumps(data).encode("utf-8")
 
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(response_body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_cors_headers()
         self.end_headers()
         self.wfile.write(response_body)
 
