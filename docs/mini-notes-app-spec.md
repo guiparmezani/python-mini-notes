@@ -9,6 +9,7 @@ Build a very small full-stack application to practice:
 - REST API design
 - PostgreSQL integration
 - Docker-based local services
+- Unit testing
 - Frontend/backend communication
 - Loading and error states
 - Basic CRUD operations
@@ -33,6 +34,7 @@ This project is intentionally small enough to complete in a few hours.
 - Built-in `http.server`
 - `psycopg` (PostgreSQL driver)
 - `python-dotenv`
+- `pytest`
 - Local Python virtual environment for the first implementation
 
 ### Database
@@ -77,7 +79,7 @@ Install Python dependencies:
 
 ```bash
 python -m pip install --upgrade pip
-python -m pip install "psycopg[binary]" python-dotenv
+python -m pip install "psycopg[binary]" python-dotenv pytest
 python -m pip freeze > requirements.txt
 ```
 
@@ -94,7 +96,7 @@ services:
       POSTGRES_USER: notes_app
       POSTGRES_PASSWORD: notes_app
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -111,10 +113,10 @@ docker compose up -d
 The backend should connect to:
 
 ```env
-DATABASE_URL=postgresql://notes_app:notes_app@localhost:5432/notes_app
+DATABASE_URL=postgresql://notes_app:notes_app@localhost:55432/notes_app
 ```
 
-Use `localhost` because Docker maps the container's PostgreSQL port to the host machine.
+Use `localhost` because Docker maps the container's PostgreSQL port to the host machine. The container still listens on `5432`; the host machine uses `55432` to avoid conflicts with other local Postgres services.
 
 ---
 
@@ -197,7 +199,13 @@ Search title, body, or tags.
 Install:
 
 ```bash
-python -m pip install "psycopg[binary]" python-dotenv
+python -m pip install "psycopg[binary]" python-dotenv pytest
+```
+
+Run tests:
+
+```bash
+python -m pytest backend/tests
 ```
 
 ---
@@ -224,6 +232,7 @@ python -m pip install "psycopg[binary]" python-dotenv
 - Error handling
 - Environment variables
 - Virtual environments
+- Unit tests with `pytest`
 
 ---
 
@@ -310,6 +319,7 @@ Implement:
 - Create `.env`
 - Create `.gitignore`
 - Create `docker-compose.yml`
+- Install `pytest`
 
 ### Phase 1
 
@@ -333,6 +343,18 @@ Implement:
 - DELETE /notes/:id
 
 Verify using Postman or curl.
+
+### Phase 2.5
+
+Add backend unit tests.
+
+Implement:
+
+- Test note payload validation
+- Test database-row serialization
+- Test note ID parsing
+
+Keep these tests focused on pure Python helper functions so they can run without a live database.
 
 ### Phase 3
 
@@ -391,6 +413,7 @@ By the end of the project you should be comfortable with:
 - PostgreSQL CRUD operations
 - Docker Compose service management
 - Environment-based configuration
+- Python unit testing
 - JSON APIs
 - Frontend/backend integration
 

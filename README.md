@@ -6,7 +6,7 @@ The first backend intentionally uses Python's built-in `http.server` instead of 
 
 ## Stack
 
-- Backend: Python, `http.server`, `psycopg`, `python-dotenv`
+- Backend: Python, `http.server`, `psycopg`, `python-dotenv`, `pytest`
 - Frontend: React, TypeScript, Vite
 - Database: PostgreSQL 16
 - Local services: Docker Compose
@@ -192,11 +192,18 @@ cd frontend
 npm run build
 ```
 
+Run backend unit tests:
+
+```bash
+python -m pytest backend/tests
+```
+
 ## Learning Goals
 
 This project is meant to build comfort with:
 
 - Python virtual environments and dependencies
+- Python unit testing with `pytest`
 - HTTP request handlers
 - JSON request/response handling
 - SQL and PostgreSQL CRUD operations

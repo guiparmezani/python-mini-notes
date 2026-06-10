@@ -1,10 +1,57 @@
 import json
-from http.server import BaseHTTPRequestHandler, HTTPSServer, HTTPServer
-from db import get_connection
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
+
+from db import get_connection
 
 HOST = 'localhost'
 PORT = 8001
+
+
+def serialize_note(row):
+    return {
+        "id": row[0],
+        "title": row[1],
+        "body": row[2],
+        "tags": row[3],
+        "created_at": row[4].isoformat(),
+    }
+
+
+def validate_note_payload(payload):
+    title = payload.get("title", "").strip()
+    body = payload.get("body", "").strip()
+    tags = payload.get("tags", [])
+
+    if not title:
+        return None, "Title is required"
+
+    if not body:
+        return None, "Body is required"
+
+    if not isinstance(tags, list):
+        return None, "Tags must be a list"
+
+    if not all(isinstance(tag, str) for tag in tags):
+        return None, "Each tag must be a string"
+
+    cleaned_note = {
+        "title": title,
+        "body": body,
+        "tags": tags,
+    }
+
+    return cleaned_note, None
+
+
+def parse_note_id(path):
+    note_id_text = path.removeprefix('/notes/')
+
+    try:
+        return int(note_id_text)
+    except ValueError:
+        return None
+
 
 class NotesHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -67,16 +114,7 @@ class NotesHandler(BaseHTTPRequestHandler):
 
                 rows = cursor.fetchall()
 
-        notes = []
-        for row in rows:
-            note = {
-                "id": row[0],
-                "title": row[1],
-                "body": row[2],
-                "tags": row[3],
-                "created_at": row[4].isoformat(),
-            }
-            notes.append(note)
+        notes = [serialize_note(row) for row in rows]
 
         self.send_json(notes)
 
@@ -93,21 +131,10 @@ class NotesHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Invalid JSON"}, status=400)
             return
 
-        # Fields validation.
-        title = payload.get("title", "").strip()
-        body = payload.get("body", "").strip()
-        tags = payload.get("tags", [])
+        cleaned_note, validation_error = validate_note_payload(payload)
 
-        if not title:
-            self.send_json({"error": "Title is required"}, status=400)
-            return
-
-        if not body:
-            self.send_json({"error": "Body is required"}, status=400)
-            return
-
-        if not isinstance(tags, list):
-            self.send_json({"error": "Tags must be a list"}, status=400)
+        if validation_error:
+            self.send_json({"error": validation_error}, status=400)
             return
         
         # Upon validating the content, connects to Postgres and inserts the entry.
@@ -119,26 +146,24 @@ class NotesHandler(BaseHTTPRequestHandler):
                     VALUES (%s, %s, %s)
                     RETURNING id, title, body, tags, created_at;
                     """,
-                    (title, body, tags),
+                    (
+                        cleaned_note["title"],
+                        cleaned_note["body"],
+                        cleaned_note["tags"],
+                    ),
                 )
                 row = cursor.fetchone()
 
-        note = {
-            "id": row[0],
-            "title": row[1],
-            "body": row[2],
-            "tags": row[3],
-            "created_at": row[4].isoformat(),
-        }
+        note = serialize_note(row)
 
         self.send_json(note, status=201)
 
     def handle_delete_note(self):
-        note_id_text = self.path.removeprefix('/notes/')
-        try:
-            note_id = int(note_id_text)
-        except ValueError:
+        note_id = parse_note_id(self.path)
+
+        if note_id is None:
             self.send_json({'error': 'Invalid note id'}, status=400)
+            return
 
         with get_connection() as conn:
             with conn.cursor() as cursor:
